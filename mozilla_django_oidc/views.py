@@ -20,6 +20,7 @@ from mozilla_django_oidc.utils import (absolutify,
                                        add_state_and_nonce_to_session,
                                        import_from_settings)
 
+from requests.models import PreparedRequest
 from urllib.parse import urlencode
 
 
@@ -166,6 +167,7 @@ class OIDCAuthenticationRequestView(View):
 
     def get(self, request):
         """OIDC client authentication initialization HTTP endpoint"""
+        auth_url = self.OIDC_OP_AUTH_ENDPOINT
         state = get_random_string(self.get_settings('OIDC_STATE_SIZE', 32))
         redirect_field_name = self.get_settings('OIDC_REDIRECT_FIELD_NAME', 'next')
         reverse_url = self.get_settings('OIDC_AUTHENTICATION_CALLBACK_URL',
@@ -194,8 +196,9 @@ class OIDCAuthenticationRequestView(View):
 
         request.session['oidc_login_next'] = get_next_url(request, redirect_field_name)
 
-        query = urlencode(params)
-        redirect_url = '{url}?{query}'.format(url=self.OIDC_OP_AUTH_ENDPOINT, query=query)
+        req = PreparedRequest()
+        req.prepare_url(auth_url, params)
+        redirect_url = req.url
         return HttpResponseRedirect(redirect_url)
 
     def get_extra_params(self, request):

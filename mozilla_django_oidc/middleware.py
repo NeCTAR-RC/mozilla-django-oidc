@@ -14,6 +14,7 @@ from mozilla_django_oidc.utils import (absolutify,
                                        add_state_and_nonce_to_session,
                                        import_from_settings)
 
+from requests.models import PreparedRequest
 from urllib.parse import quote, urlencode
 
 try:
@@ -162,8 +163,9 @@ class SessionRefresh(MiddlewareMixin):
 
         request.session['oidc_login_next'] = request.get_full_path()
 
-        query = urlencode(params, quote_via=quote)
-        redirect_url = '{url}?{query}'.format(url=auth_url, query=query)
+        req = PreparedRequest()
+        req.prepare_url(auth_url, params)
+        redirect_url = req.url
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             # Almost all XHR request handling in client-side code struggles
             # with redirects since redirecting to a page where the user
